@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Run a command over a sequence of commits.
 # Example:
 #  git test-sequence origin/master.. 'make clean && make test'
@@ -24,9 +24,6 @@ case "$diff" in
         exit 1
         ;;
 esac
-
-start_branch=`git rev-parse --symbolic-full-name HEAD | sed s,refs/heads/,,`
-git checkout `git rev-parse HEAD` > /dev/null 2>/dev/null
 
 cleanup() {
     git checkout $start_branch > /dev/null 2>/dev/null
@@ -82,9 +79,17 @@ do
     shift
 done
 
+start_branch=`git rev-parse --symbolic-full-name HEAD | sed s,refs/heads/,,`
+
+# Get the commit list before detaching
+declare -a COMMIT_LIST
+readarray -t COMMIT_LIST <<<"$(git rev-list --reverse "$1")"
+
+git checkout `git rev-parse HEAD` > /dev/null 2>/dev/null
+
 t=`echo "$2" | git hash-object --stdin`
 
-for v in `git rev-list --reverse $1`
+for v in "${COMMIT_LIST[@]}"
 do
     tree_ver=`git rev-parse "$v^{tree}"`
     test -z "$force" && already_passed $tree_ver || new_test $tree_ver "$2"
